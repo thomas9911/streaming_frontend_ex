@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StreamingFrontendEx app</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"
+    />
+  </head>
+
+  <body>
+    <section class="section">
+      <div class="container" id="main body">
+      </div>
+    </section>
+
+    <script>
+      sock = new WebSocket("ws://localhost:4000/websocket");
+      sock.addEventListener("open", () => sock.send("ping"));
+      sock.addEventListener("message", (message) => {
+        if (message.data == "pong") {
+          return;
+        }
+        let body = document.getElementById("main body");
+        let newItem = document.createElement("div");
+        body.appendChild(newItem);
+        newItem.outerHTML = message.data;
+      });
+    </script>
+  </body>
+</html>

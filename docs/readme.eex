@@ -1,0 +1,13 @@
+# <%= module_name %>
+
+## Installation
+
+```elixir
+def deps do
+  [
+    {:<%= app %>, "~> <%= version %>"}
+  ]
+end
+```
+
+<%= module_doc %>
