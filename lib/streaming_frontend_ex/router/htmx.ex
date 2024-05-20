@@ -50,20 +50,68 @@ defmodule StreamingFrontendEx.Router.Htmx do
     "<div class=\"content\">#{html}</div>"
   end
 
-  def render({:image_binary, binary, _opts}) do
+  def render({:image_binary, binary, opts}) do
+    # ratio_attr =
+    #   opts
+    #   |> Access.get(:ratio)
+    #   |> apply_if_something(fn ratio ->
+    #     {width, height} =
+    #       case {String.split(ratio, "x"), String.split(ratio, ":")} do
+    #         {[a, b], _} -> {a, b}
+    #         {_, [a, b]} -> {a, b}
+    #         _ -> raise "Invalid format"
+    #       end
+
+    #     "is-#{width}by#{height}"
+    #   end)
+
+    ratio_attr =
+      opts
+      |> Access.get(:ratio)
+      |> apply_if_something(fn {width, height} ->
+        "is-#{width}by#{height}"
+      end)
+
+    alt_text =
+      opts
+      |> Access.get(:alt)
+      |> apply_if_something(&"alt=\"#{&1}\"")
+
     """
-    <figure class="image is-128x128">
-      <img src="data:image/png; base64,#{Base.encode64(binary)}" />
+    <figure class="image #{ratio_attr}">
+      <img #{alt_text} src="data:image/png; base64,#{Base.encode64(binary)}" />
     </figure>
     """
   end
 
-  # defp parent_to_id(options) do
-  #   case Access.fetch(options, :parent) do
-  #     parent -> "id=\"#{parent}\""
-  #     _ -> ""
-  #   end
-  # end
+  def render({:simple_input, id, _opts}) do
+    # """
+    # <form
+    #   id="#{id}"
+    #   onsubmit="event.preventDefault();
+    #   window.socket.send(JSON.stringify({
+    #     id: event.target.id, value: {
+    #       name: event.target[0].name,
+    #       value: event.target[0].value
+    #   }}))"
+    # >
+    #   <input type="text" name="userInput" />
+    # </form>
+    # """
+    """
+    <form
+      id="#{id}"
+      onsubmit="event.preventDefault();
+      window.socket.send(JSON.stringify({
+        id: event.target.id, value: event.target[0].value}))"
+    >
+      <input class="input" type="text" name="userInput" />
+    </form>
+    """
+  end
+
+  defp apply_if_something(nil, _), do: ""
+  defp apply_if_something(value, formatter), do: formatter.(value)
 
   defp heading_to_bulma_class(heading) do
     case heading do

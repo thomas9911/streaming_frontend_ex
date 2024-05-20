@@ -55,6 +55,11 @@ defmodule StreamingFrontendEx do
   alias StreamingFrontendEx.AppDefinition
   alias StreamingFrontendEx.Router
 
+  @typedoc """
+  A type that can be safely ignored
+  """
+  @type not_special :: any
+
   def init(arguments) do
     bandit_args =
       arguments
@@ -80,6 +85,10 @@ defmodule StreamingFrontendEx do
         Registry.child_spec(
           keys: :duplicate,
           name: StreamingFrontendEx.WebSocketRegistry
+        ),
+        Registry.child_spec(
+          keys: :duplicate,
+          name: StreamingFrontendEx.InputRegistry
         )
       ] ++ app_task
 
@@ -157,6 +166,24 @@ defmodule StreamingFrontendEx do
   """
   defdelegate markdown(html, opts \\ []), to: AppDefinition, as: :add_markdown
 
+  @doc """
+  Insert image
+
+  The input should be the binary data of the image or a tuple with `{:path, "/path/to/image.jpg"}`
+
+  ## Options
+
+    * `:ratio` - binary
+
+      one of: "1x1", "2x1", "3x1","5x4", "4x3", "3x2", "5x3", "16x9"
+
+      or the reverse like: "2x3"
+
+      or using the `:` character like "16:9"
+
+    * `:alt` - The alternative text for the image
+  """
+  @spec image(binary | {:path, binary}, keyword) :: not_special
   defdelegate image(image_data, opts \\ []), to: AppDefinition, as: :add_image
 
   @doc """
@@ -176,4 +203,26 @@ defmodule StreamingFrontendEx do
   ```
   """
   defdelegate lazy(opts \\ [], callback), to: AppDefinition, as: :add_lazy_block
+
+  @doc """
+  Get an input from the user via a simple line
+  """
+  @spec input(keyword) :: binary
+  def input(opts \\ []) do
+    id = random_id()
+    {:ok, _} = Registry.register(StreamingFrontendEx.InputRegistry, id, [])
+
+    AppDefinition.add_simple_input(id, opts)
+
+    receive do
+      {:input_result, value} ->
+        value
+    end
+  end
+
+  defp random_id do
+    32
+    |> :rand.bytes()
+    |> Base.encode32(padding: false, case: :lower)
+  end
 end

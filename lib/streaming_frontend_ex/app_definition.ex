@@ -60,12 +60,38 @@ defmodule StreamingFrontendEx.AppDefinition do
     GenServer.cast(__MODULE__, {:add, {:markdown_prerendered, Earmark.as_html!(input, compact_output: true), opts}})
   end
 
-  def add_image(binary, opts \\ []) do
-    GenServer.cast(__MODULE__, {:add, {:image_binary, binary, opts}})
+  def add_image(image_input, opts \\ []) do
+    updated_opts =
+      case Access.fetch(opts, :ratio) do
+        {:ok, ratio} ->
+          {width, height} =
+            case {String.split(ratio, "x"), String.split(ratio, ":")} do
+              {[a, b], _} -> {a, b}
+              {_, [a, b]} -> {a, b}
+              _ -> raise "Invalid format"
+            end
+
+          Keyword.put(opts, :ratio, {width, height})
+
+        _ ->
+          opts
+      end
+
+    binary =
+      case image_input do
+        {:path, path} -> File.read!(path)
+        binary -> binary
+      end
+
+    GenServer.cast(__MODULE__, {:add, {:image_binary, binary, updated_opts}})
   end
 
   def add_lazy_block(opts \\ [], callback) do
     GenServer.cast(__MODULE__, {:add, {:lazy_block, callback, opts}})
+  end
+
+  def add_simple_input(id, opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:simple_input, id, opts}})
   end
 
   ## Admin functions

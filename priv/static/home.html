@@ -17,9 +17,9 @@
     </section>
 
     <script>
-      sock = new WebSocket("ws://localhost:4000/websocket");
-      sock.addEventListener("open", () => sock.send("ping"));
-      sock.addEventListener("message", (message) => {
+      socket = new WebSocket("ws://localhost:4000/websocket");
+      socket.addEventListener("open", () => socket.send("ping"));
+      socket.addEventListener("message", (message) => {
         if (message.data == "pong") {
           return;
         }
@@ -29,6 +29,7 @@
         body.appendChild(newItem);
         newItem.outerHTML = html;
       });
+      window.socket = socket
     </script>
   </body>
 </html>

@@ -41,6 +41,20 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
     {:reply, :ok, {:text, "pong"}, state}
   end
 
+  def handle_in({data, [opcode: :text]}, state) do
+    case Jason.decode(data) do
+      {:ok, %{"id" => id, "value" => value}} ->
+        Registry.dispatch(StreamingFrontendEx.InputRegistry, id, fn entries ->
+          for {pid, _} <- entries, do: send(pid, {:input_result, value})
+        end)
+
+      _ ->
+        :ok
+    end
+
+    {:ok, state}
+  end
+
   def handle_info({:lazy_block, _callback, _opts} = item, state) do
     apply_lazy_callback(item, state, nil)
   end
