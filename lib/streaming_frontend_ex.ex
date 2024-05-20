@@ -158,4 +158,22 @@ defmodule StreamingFrontendEx do
   defdelegate markdown(html, opts \\ []), to: AppDefinition, as: :add_markdown
 
   defdelegate image(image_data, opts \\ []), to: AppDefinition, as: :add_image
+
+  @doc """
+  Because how this library is written all the statements are executed eagerly.
+  Sometimes you dont want this, because you need to fetch data from an api that returns different results
+  or like the example below you want to get the current time.
+
+  ```elixir
+  StreamingFrontendEx.lazy(fn ->
+    Enum.map(0..5, fn _ ->
+      Process.sleep(1000)
+      StreamingFrontendEx.write("\#{DateTime.utc_now()}")
+    end)
+  end)
+
+  StreamingFrontendEx.write("Written after lazy has completed")
+  ```
+  """
+  defdelegate lazy(opts \\ [], callback), to: AppDefinition, as: :add_lazy_block
 end

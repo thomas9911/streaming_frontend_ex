@@ -41,20 +41,26 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
     {:reply, :ok, {:text, "pong"}, state}
   end
 
+  def handle_info({:lazy_block, _callback, _opts} = item, state) do
+    apply_lazy_callback(item, state, nil)
+  end
+
   def handle_info({_, _, _} = html_item, state) do
+    IO.inspect(html_item)
     message = html_item_to_message(html_item)
     {:push, {:text, Jason.encode!(message)}, state}
   end
 
   def handle_info(:startup, state) do
-    # data = Enum.map(AppDefinition.list(), fn item -> {:text, Htmx.render(item)} end)
     send(self(), :paginate)
     {:ok, Map.put(state, :index, 0)}
   end
 
   def handle_info(:paginate, %{index: index} = state) do
-    # data = Enum.map(AppDefinition.list(), fn item -> {:text, Htmx.render(item)} end)
     case AppDefinition.get(index) do
+      {:ok, {:lazy_block, _callback, _opts} = item} ->
+        apply_lazy_callback(item, Map.put(state, :index, index + 1), self())
+
       {:ok, html_item} ->
         send(self(), :paginate)
         message = html_item_to_message(html_item)
@@ -68,6 +74,23 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
   def handle_info(data, state) do
     IO.inspect(data, label: "unhandled event")
     {:push, {:text, "hallo"}, state}
+  end
+
+  @spec apply_lazy_callback({:lazy_block, function, list}, map, parent_pid :: pid | nil) :: {:ok, map}
+  defp apply_lazy_callback({:lazy_block, callback, _opts}, state, nil) do
+    Task.start(callback)
+    {:ok, state}
+  end
+
+  defp apply_lazy_callback({:lazy_block, callback, _opts}, state, parent_pid) do
+    Task.start(fn ->
+      AppDefinition.halt()
+      callback.()
+      AppDefinition.continue()
+      send(parent_pid, :paginate)
+    end)
+
+    {:ok, state}
   end
 
   defp html_item_to_message(item) do

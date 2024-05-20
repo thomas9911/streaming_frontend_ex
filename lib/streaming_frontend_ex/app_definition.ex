@@ -4,8 +4,13 @@ defmodule StreamingFrontendEx.AppDefinition do
 
   alias StreamingFrontendEx.Router.StreamingServer
 
+  defmodule State do
+    @moduledoc false
+    defstruct items: [], dynamic_only: false
+  end
+
   def init(_init_arg) do
-    {:ok, []}
+    {:ok, %State{items: []}}
   end
 
   def start_link(opts) do
@@ -59,6 +64,12 @@ defmodule StreamingFrontendEx.AppDefinition do
     GenServer.cast(__MODULE__, {:add, {:image_binary, binary, opts}})
   end
 
+  def add_lazy_block(opts \\ [], callback) do
+    GenServer.cast(__MODULE__, {:add, {:lazy_block, callback, opts}})
+  end
+
+  ## Admin functions
+
   def list do
     GenServer.call(__MODULE__, :list)
   end
@@ -67,28 +78,51 @@ defmodule StreamingFrontendEx.AppDefinition do
     GenServer.call(__MODULE__, {:get, index})
   end
 
-  ## Implementations
-
-  def handle_call(:list, _, state) do
-    {:reply, Enum.reverse(state), state}
+  def halt do
+    GenServer.call(__MODULE__, :halt)
   end
 
-  def handle_call({:get, index}, _, state) do
-    reversed_index = length(state) - (index + 1)
+  def continue do
+    GenServer.call(__MODULE__, :continue)
+  end
+
+  ## Implementations
+
+  def handle_call(:list, _, %State{items: items} = state) do
+    {:reply, Enum.reverse(items), state}
+  end
+
+  def handle_call({:get, index}, _, %State{items: items} = state) do
+    reversed_index = length(items) - (index + 1)
 
     if reversed_index >= 0 do
-      {:reply, {:ok, Enum.at(state, reversed_index)}, state}
+      {:reply, {:ok, Enum.at(items, reversed_index)}, state}
     else
       {:reply, :error, state}
     end
   end
 
-  def handle_cast({:add, item}, state) do
+  def handle_call(:halt, _, state) do
+    {:reply, :ok, %State{state | dynamic_only: true}}
+  end
+
+  def handle_call(:continue, _, state) do
+    {:reply, :ok, %State{state | dynamic_only: false}}
+  end
+
+  def handle_cast({:add, item}, %State{items: items, dynamic_only: dynamic_only} = state) do
     StreamingServer.dispatch(fn {pid, _} ->
       send(pid, item)
     end)
 
-    new_state = [item | state]
+    new_state =
+      if dynamic_only do
+        state
+      else
+        new_items = [item | items]
+        %State{state | items: new_items}
+      end
+
     {:noreply, new_state}
   end
 
