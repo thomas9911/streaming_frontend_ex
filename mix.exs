@@ -26,12 +26,13 @@ defmodule StreamingFrontendEx.MixProject do
     [
       {:styler, "~> 0.11.9", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
-      {:mix_readme, "~> 0.2.1", runtime: false},
+      {:mix_readme, "~> 0.2.1", only: :dev, runtime: false},
       {:bandit, "~> 1.0"},
       {:websock_adapter, "~> 0.5.6"},
       {:plug, "~> 1.15.3"},
       {:earmark, "~> 1.4.46"},
-      {:stream_split, "~> 0.1.7"}
+      {:stream_split, "~> 0.1.7"},
+      {:jason, "~> 1.4.1"}
     ]
   end
 end

@@ -23,10 +23,11 @@
         if (message.data == "pong") {
           return;
         }
-        let body = document.getElementById("main body");
+        let {parent, html} = JSON.parse(message.data);
+        let body = document.getElementById(parent ??= "main body");
         let newItem = document.createElement("div");
         body.appendChild(newItem);
-        newItem.outerHTML = message.data;
+        newItem.outerHTML = html;
       });
     </script>
   </body>

@@ -4,6 +4,12 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
   alias StreamingFrontendEx.AppDefinition
   alias StreamingFrontendEx.Router.Htmx
 
+  defmodule Message do
+    @moduledoc false
+    @derive Jason.Encoder
+    defstruct [:html, :parent]
+  end
+
   def registry do
     StreamingFrontendEx.WebSocketRegistry
   end
@@ -35,8 +41,9 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
     {:reply, :ok, {:text, "pong"}, state}
   end
 
-  def handle_info({_, _} = html_item, state) do
-    {:push, {:text, Htmx.render(html_item)}, state}
+  def handle_info({_, _, _} = html_item, state) do
+    message = html_item_to_message(html_item)
+    {:push, {:text, Jason.encode!(message)}, state}
   end
 
   def handle_info(:startup, state) do
@@ -48,9 +55,10 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
   def handle_info(:paginate, %{index: index} = state) do
     # data = Enum.map(AppDefinition.list(), fn item -> {:text, Htmx.render(item)} end)
     case AppDefinition.get(index) do
-      {:ok, item} ->
+      {:ok, html_item} ->
         send(self(), :paginate)
-        {:push, {:text, Htmx.render(item)}, Map.put(state, :index, index + 1)}
+        message = html_item_to_message(html_item)
+        {:push, {:text, Jason.encode!(message)}, Map.put(state, :index, index + 1)}
 
       _ ->
         {:ok, state}
@@ -60,5 +68,13 @@ defmodule StreamingFrontendEx.Router.StreamingServer do
   def handle_info(data, state) do
     IO.inspect(data, label: "unhandled event")
     {:push, {:text, "hallo"}, state}
+  end
+
+  defp html_item_to_message(item) do
+    %Message{html: Htmx.render(item), parent: parent_to_id(item)}
+  end
+
+  defp parent_to_id({_, _, options}) do
+    Access.get(options, :parent)
   end
 end

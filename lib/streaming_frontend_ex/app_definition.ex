@@ -14,34 +14,49 @@ defmodule StreamingFrontendEx.AppDefinition do
 
   ## Commands
 
-  def add_text(input, _opts \\ []) do
-    GenServer.cast(__MODULE__, {:add, {:text, input}})
+  def add_text(input, opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:text, input, opts}})
   end
 
-  def add_preformatted_text(input, _opts \\ []) do
-    GenServer.cast(__MODULE__, {:add, {:preformatted_text, input}})
+  def add_preformatted_text(input, opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:preformatted_text, input, opts}})
   end
 
   def add_title(input, opts \\ []) do
     heading = Keyword.get(opts, :heading, :h1)
-    GenServer.cast(__MODULE__, {:add, {:title, {heading, input}}})
+    GenServer.cast(__MODULE__, {:add, {:title, {heading, input}, opts}})
   end
 
   def add_subtitle(input, opts \\ []) do
     heading = Keyword.get(opts, :heading, :h1)
-    GenServer.cast(__MODULE__, {:add, {:subtitle, {heading, input}}})
+    GenServer.cast(__MODULE__, {:add, {:subtitle, {heading, input}, opts}})
   end
 
-  def add_divider(_opts \\ []) do
-    GenServer.cast(__MODULE__, {:add, {:divider, []}})
+  def add_divider(opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:divider, [], opts}})
   end
 
-  def add_html(input, _opts \\ []) do
-    GenServer.cast(__MODULE__, {:add, {:html, input}})
+  def add_division(opts \\ []) do
+    parent =
+      case Keyword.fetch(opts, :parent) do
+        {:ok, parent} -> parent
+        _ -> generate_parent_id()
+      end
+
+    GenServer.cast(__MODULE__, {:add, {:division, parent, opts}})
+    parent
   end
 
-  def add_markdown(input, _opts \\ []) do
-    GenServer.cast(__MODULE__, {:add, {:markdown_prerendered, Earmark.as_html!(input, compact_output: true)}})
+  def add_html(input, opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:html, input, opts}})
+  end
+
+  def add_markdown(input, opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:markdown_prerendered, Earmark.as_html!(input, compact_output: true), opts}})
+  end
+
+  def add_image(binary, opts \\ []) do
+    GenServer.cast(__MODULE__, {:add, {:image_binary, binary, opts}})
   end
 
   def list do
@@ -68,12 +83,18 @@ defmodule StreamingFrontendEx.AppDefinition do
     end
   end
 
-  def handle_cast({:add, tag}, state) do
+  def handle_cast({:add, item}, state) do
     StreamingServer.dispatch(fn {pid, _} ->
-      send(pid, tag)
+      send(pid, item)
     end)
 
-    new_state = [tag | state]
+    new_state = [item | state]
     {:noreply, new_state}
+  end
+
+  defp generate_parent_id do
+    32
+    |> :rand.bytes()
+    |> Base.encode32(padding: false, case: :lower)
   end
 end

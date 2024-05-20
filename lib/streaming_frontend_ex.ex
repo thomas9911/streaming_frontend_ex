@@ -141,6 +141,13 @@ defmodule StreamingFrontendEx do
   defdelegate divider(opts \\ []), to: AppDefinition, as: :add_divider
 
   @doc """
+  Create a division (or <div>)
+
+  This can be used to append content to a specific section.
+  """
+  defdelegate division(opts \\ []), to: AppDefinition, as: :add_division
+
+  @doc """
   Insert plain html
   """
   defdelegate unsafe_html(html, opts \\ []), to: AppDefinition, as: :add_html
@@ -149,4 +156,6 @@ defmodule StreamingFrontendEx do
   Insert markdown
   """
   defdelegate markdown(html, opts \\ []), to: AppDefinition, as: :add_markdown
+
+  defdelegate image(image_data, opts \\ []), to: AppDefinition, as: :add_image
 end
