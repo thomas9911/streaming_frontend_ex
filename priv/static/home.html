@@ -17,7 +17,7 @@
     </section>
 
     <script>
-      socket = new WebSocket("ws://localhost:4000/websocket");
+      socket = new WebSocket("ws://localhost:<%= port %>/websocket");
       socket.addEventListener("open", () => socket.send("ping"));
       socket.addEventListener("message", (message) => {
         if (message.data == "pong") {

@@ -9,7 +9,7 @@ defmodule StreamingFrontendEx.Router do
   plug(:dispatch)
 
   get "/" do
-    send_html(conn, Htmx.home())
+    send_html(conn, Htmx.home(conn))
   end
 
   get "/websocket" do

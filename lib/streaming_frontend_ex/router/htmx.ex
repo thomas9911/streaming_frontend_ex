@@ -2,12 +2,15 @@ defmodule StreamingFrontendEx.Router.Htmx do
   @moduledoc false
 
   @home_file Application.app_dir(:streaming_frontend_ex, "priv/static/home.html")
-  @home File.read!(@home_file)
+  @home EEx.compile_file(@home_file)
   @external_resource @home_file
 
   @headings [:h1, :h2, :h3, :h4, :h5, :h6]
 
-  def home, do: @home
+  def home(conn) do
+    {result, _} = Code.eval_quoted(@home, port: conn.port)
+    result
+  end
 
   def render(text) when is_binary(text), do: text
 

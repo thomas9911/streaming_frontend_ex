@@ -101,10 +101,20 @@ defmodule StreamingFrontendEx do
   This function will hang until a signal to stop is send
   """
   def app(start_link_options \\ [], app_defintion_function) do
+    {open?, start_link_options} = Keyword.pop(start_link_options, :open)
+    bandit_arguments = Keyword.get(start_link_options, :bandit_arguments, [])
+    bandit_arguments = Keyword.put_new(bandit_arguments, :port, 5845)
+    start_link_options = Keyword.put(start_link_options, :bandit_arguments, bandit_arguments)
+
     {:ok, process_pid} = start_link(start_link_options)
 
     try do
       app_defintion_function.()
+
+      if open? do
+        port = Keyword.fetch!(bandit_arguments, :port)
+        open_url("http://localhost:#{port}")
+      end
 
       Process.sleep(:infinity)
     after
@@ -224,5 +234,13 @@ defmodule StreamingFrontendEx do
     32
     |> :rand.bytes()
     |> Base.encode32(padding: false, case: :lower)
+  end
+
+  defp open_url(url) do
+    case :os.type() do
+      {:unix, :darwin} -> System.cmd("open", [url])
+      {:unix, _} -> System.cmd("xdg-open", [url])
+      {:win32, _} -> System.cmd("cmd", ["/c", "start", url])
+    end
   end
 end
